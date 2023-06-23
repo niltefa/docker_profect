@@ -1,0 +1,46 @@
+version: '3'
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+ 
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - /etc/repte/containers-config/prometheus:/config/conf
+      - /etc/repte/certificates/prometheus/chain:/config/CA/chain
+      - /etc/repte/certificates/prometheus/key:/config/CA/key
+      - /etc/repte/certificates/prometheus/cert:/config/CA/cert
+      - prometheus-data:/prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/config/conf/prometheus.yml"
+      - "--web.config.file=/config/conf/prometheus-web.yml"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - /etc/repte/containers-config/grafana/custom.ini:/etc/grafana/grafana.ini
+      - /etc/repte/certificates/grafana/cert:/etc/grafana/cert
+      - /etc/repte/certificates/grafana/key:/etc/grafana/key
+      - /etc/repte/certificates/grafana/chain:/etc/grafana/chain
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+
+  nginx:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+

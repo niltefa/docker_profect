@@ -1,0 +1,81 @@
+version: "3.1"
+services:
+    db:
+      image: mysql
+      command: --default-authentication-plugin=mysql_native_password
+      restart: unless-stopped
+      environment:
+        MYSQL_ROOT_PASSWORD: NUbcCkULmhs8CJDjNmxE
+      networks:
+        - default
+
+    node-exporter:
+      image: quay.io/prometheus/node-exporter:latest
+      volumes:
+        - /proc:/host/proc:ro
+        - /sys:/host/sys:ro
+        - /:/rootfs:ro
+        - /:/host:ro,rslave
+      command:
+        - '--path.rootfs=/host'
+        - '--path.procfs=/host/proc'
+        - '--path.sysfs=/host/sys'
+        - --collector.filesystem.ignored-mount-points
+        - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+      ports:
+        - "9100:9100"
+      restart: always
+      deploy:
+        mode: global
+
+    cadvisor:
+      image: gcr.io/cadvisor/cadvisor:latest
+      container_name: cadvisor
+      privileged: true
+      ports:
+      - "8080:8080"
+      volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      restart: unless-stopped
+
+    apache2-website:
+        build:
+          context: .
+          dockerfile: ApacheDockerFile
+        restart: unless-stopped
+        ports:
+            - "9090:80"
+            - "9000:443"
+        volumes:
+            - /etc/repte/website:/var/www/html
+            - /etc/repte/certificates/web.cert.pem:/etc/ssl/repte/certificate.pem
+            - /etc/repte/certificates/web.key.pem:/etc/ssl/repte/key.pem
+            - /etc/repte/containers-config/apache2-web/apache2.conf:/etc/apache2/apache2.conf
+            - /etc/repte/containers-config/apache2-web/000-default.conf:/etc/apache2/sites-enabled/default-ssl.conf
+        links:
+            - db
+        networks:
+            - default
+
+    phpmyadmin:
+        build:
+          context: .
+          dockerfile: PhpMyAdminDockerFile
+        restart: unless-stopped
+        links:
+            - db:db
+        ports:
+            - "8001:80"
+            - "8000:443"
+    nginx:
+      image: 'jc21/nginx-proxy-manager:latest'
+      restart: unless-stopped
+      ports:
+        - '80:80'
+        - '81:81'
+        - '443:443'
+volumes:
+    persistent:

@@ -1,0 +1,14 @@
+FROM phpmyadmin/phpmyadmin
+
+COPY ./containers-config/phpmyadmin/000-default.conf /etc/apache2/sites-available/default-ssl.conf
+COPY ./certificates/phpmyadmin.cert.pem /etc/ssl/repte/certificate.pem
+COPY ./certificates/phpmyadmin.key.pem /etc/ssl/repte/key.pem
+
+ENV MYSQL_USER=root
+ENV MYSQL_PASSWORD=NUbcCkULmhs8CJDjNmxE
+ENV MYSQL_ROOT_PASSWORD=NUbcCkULmhs8CJDjNmxE
+
+RUN a2enmod ssl
+RUN a2enmod rewrite
+RUN a2ensite default-ssl
+RUN /etc/init.d/apache2 restart
